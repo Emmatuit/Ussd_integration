@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ussd-gateway-db
+    environment:
+      POSTGRES_DB: ussd_gateway
+      POSTGRES_USER: ussd_user
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ussd_user -d ussd_gateway"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build: .
+    container_name: ussd-gateway-app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ussd_gateway
+      DB_USERNAME: ussd_user
+      DB_PASSWORD: changeme
+      HMAC_SECRET_KEY: production-hmac-secret-key-change-this
+      AES_SECRET_KEY: production-aes-key-change-this-16
+      BANK_API_BASE_URL: http://bank-backend:9090
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USSD Simulator - MockBank</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%);
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; padding: 20px;
+        }
+        .container { display: flex; gap: 40px; align-items: stretch; flex-wrap: wrap; justify-content: center; }
+        .phone {
+            width: 380px; min-height: 700px; background: linear-gradient(145deg, #1a1a2e, #12121f);
+            border-radius: 40px; padding: 20px;
+            box-shadow: 0 0 60px rgba(0,255,136,0.15), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+            border: 2px solid #2a2a4a; position: relative;
+        }
+        .phone-notch { width: 120px; height: 25px; background: #0a0a15; border-radius: 0 0 20px 20px; position: absolute; top: 0; left: 50%; transform: translateX(-50%); }
+        .screen { width: 100%; height: 100%; background: #0a0a15; border-radius: 25px; padding: 25px 20px 20px; display: flex; flex-direction: column; }
+        .status-bar { color: #00ff88; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 5px; }
+        .network-info { display: flex; align-items: center; gap: 8px; }
+        .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+        .signal-bars span { width: 3px; background: #00ff88; border-radius: 1px; }
+        .signal-bars span:nth-child(1){height:4px;} .signal-bars span:nth-child(2){height:7px;} .signal-bars span:nth-child(3){height:10px;} .signal-bars span:nth-child(4){height:14px;}
+        .battery { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+        .battery-icon { width: 22px; height: 11px; border: 2px solid #00ff88; border-radius: 3px; padding: 2px; position: relative; }
+        .battery-icon::after { content: ''; position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 3px; height: 5px; background: #00ff88; border-radius: 0 2px 2px 0; }
+        .battery-fill { width: 100%; height: 100%; background: #00ff88; border-radius: 1px; }
+        .ussd-display {
+            flex: 1; background: #000; border: 2px solid #00ff88; border-radius: 12px; padding: 18px;
+            color: #00ff88; font-size: 15px; line-height: 1.7; overflow-y: auto; white-space: pre-wrap;
+            margin-bottom: 15px; min-height: 300px; box-shadow: inset 0 0 20px rgba(0,255,136,0.08);
+            font-family: 'Courier New', monospace; letter-spacing: 0.5px;
+        }
+        .ussd-display::-webkit-scrollbar{width:4px;} .ussd-display::-webkit-scrollbar-track{background:#000;} .ussd-display::-webkit-scrollbar-thumb{background:#00ff88;border-radius:2px;}
+        .ussd-display .prompt{color:#00cc66;} .ussd-display .response{color:#ffcc00;} .ussd-display .error{color:#ff4444;} .ussd-display .info{color:#6699ff;} .ussd-display .divider{color:#333;} .ussd-display .header{color:#fff;font-weight:bold;}
+        .ussd-display .countdown{color:#ffcc00;font-size:24px;text-align:center;animation:pulse 1s infinite;}
+        @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+        .input-area { background: #0d0d1a; border: 2px solid #00ff88; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .input-area .label{color:#00ff88;font-size:12px;font-weight:bold;white-space:nowrap;opacity:0.7;}
+        .input-area input{flex:1;background:transparent;border:none;color:#00ff88;font-family:'Courier New',monospace;font-size:18px;outline:none;caret-color:#00ff88;letter-spacing:2px;}
+        .input-area input::placeholder{color:#004422;letter-spacing:1px;}
+        .input-area input:disabled{opacity:0.4;}
+        .input-area .cursor{width:3px;height:20px;background:#00ff88;animation:blink 1s infinite;}
+        @keyframes blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+        .keypad button { padding: 16px 10px; background: linear-gradient(145deg, #1a1a30, #121220); border: 1px solid #2a2a4a; color: #00ff88; font-size: 18px; font-weight: 600; cursor: pointer; border-radius: 10px; transition: all 0.15s ease; font-family: 'Segoe UI', Arial, sans-serif; letter-spacing: 1px; }
+        .keypad button:hover { background: linear-gradient(145deg, #1a3a2a, #0f2f1a); border-color: #00ff88; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,255,136,0.2); }
+        .keypad button:active { transform: scale(0.95); background: #00ff88; color: #000; box-shadow: 0 2px 8px rgba(0,255,136,0.3); }
+        .keypad button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .keypad button:disabled:hover { background: linear-gradient(145deg, #1a1a30, #121220); border-color: #2a2a4a; transform: none; box-shadow: none; }
+        .action-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .action-buttons button { padding: 14px 10px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s ease; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-send { background: linear-gradient(135deg, #00cc66, #00ff88); color: #000; box-shadow: 0 4px 15px rgba(0,255,136,0.3); }
+        .btn-send:hover { box-shadow: 0 6px 25px rgba(0,255,136,0.5); transform: translateY(-2px); }
+        .btn-send:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+        .btn-send:disabled:hover { transform: none; box-shadow: 0 4px 15px rgba(0,255,136,0.3); }
+        .btn-back { background: linear-gradient(135deg, #334, #223); color: #ffcc00; border: 1px solid #ffcc00; }
+        .btn-back:hover { background: linear-gradient(135deg, #443, #332); box-shadow: 0 4px 15px rgba(255,204,0,0.3); }
+        .btn-back:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-back:disabled:hover { transform: none; box-shadow: none; background: linear-gradient(135deg, #334, #223); }
+        .btn-cancel { background: linear-gradient(135deg, #331111, #221111); color: #ff4444; border: 1px solid #ff4444; }
+        .btn-cancel:hover { background: linear-gradient(135deg, #441111, #331111); box-shadow: 0 4px 15px rgba(255,68,68,0.3); }
+        .session-info { color: #444466; font-size: 11px; text-align: center; margin-top: 8px; word-break: break-all; }
+        .side-panel { width: 340px; background: #12122a; border-radius: 20px; padding: 25px; border: 1px solid #2a2a4a; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .side-panel h3 { color: #00ff88; font-size: 18px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+        .side-panel h4 { color: #ffcc00; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+        .info-card { background: #0a0a1f; border: 1px solid #2a2a4a; border-radius: 10px; padding: 15px; }
+        .info-card p { color: #aaa; font-size: 13px; margin: 4px 0; line-height: 1.5; }
+        .info-card .value { color: #00ff88; font-weight: 600; font-family: 'Courier New', monospace; }
+        .info-card .highlight { color: #ffcc00; font-weight: 600; }
+        .flow-steps { display: flex; flex-direction: column; gap: 8px; }
+        .flow-step { display: flex; align-items: center; gap: 10px; padding: 10px; background: #0a0a1f; border-radius: 8px; border: 1px solid #2a2a4a; font-size: 12px; color: #999; transition: all 0.3s ease; }
+        .flow-step.active { border-color: #00ff88; color: #00ff88; background: #0a1a15; box-shadow: 0 0 10px rgba(0,255,136,0.1); }
+        .flow-step.completed { border-color: #00cc66; color: #00cc66; opacity: 0.8; }
+        .flow-step .step-number { width: 25px; height: 25px; border-radius: 50%; background: #1a1a30; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; border: 1px solid #3a3a5a; }
+        .flow-step.active .step-number { background: #00ff88; color: #000; border-color: #00ff88; }
+        .flow-step.completed .step-number { background: #00cc66; color: #000; border-color: #00cc66; }
+        .test-data { font-size: 12px; } .test-data .key{color:#6699ff;} .test-data .val{color:#00ff88;font-family:'Courier New',monospace;}
+        @media(max-width:800px){.container{flex-direction:column;align-items:center;}.side-panel{width:100%;max-width:380px;}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="screen">
+                <div class="status-bar">
+                    <span class="network-info"><span class="signal-bars"><span></span><span></span><span></span><span></span></span>USSD</span>
+                    <span class="battery">85%<span class="battery-icon"><span class="battery-fill"></span></span></span>
+                </div>
+                <div class="ussd-display" id="display">
+                    <span class="prompt">Welcome to MockBank USSD</span>
+                    <span class="divider">────────────────────────</span>
+                    <span class="info">Dial *723# for Main Menu</span>
+                    <span class="info">Dial *723*amount# for Airtime</span>
+                    <span class="divider">────────────────────────</span>
+                </div>
+                <div class="input-area"><span class="label">INPUT</span><input type="text" id="userInput" placeholder="Type here..." autocomplete="off"><div class="cursor" id="cursor"></div></div>
+                <div class="keypad" id="keypad">
+                    <button onclick="press('1')">1</button><button onclick="press('2')">2</button><button onclick="press('3')">3</button>
+                    <button onclick="press('4')">4</button><button onclick="press('5')">5</button><button onclick="press('6')">6</button>
+                    <button onclick="press('7')">7</button><button onclick="press('8')">8</button><button onclick="press('9')">9</button>
+                    <button onclick="press('*')" style="font-size:22px;">*</button><button onclick="press('0')">0</button><button onclick="press('#')" style="font-size:20px;">#</button>
+                </div>
+                <div class="action-buttons" id="actions">
+                    <button class="btn-cancel" onclick="endSession()">&#10005; CANCEL</button>
+                    <button class="btn-back" onclick="goBack()">&#8592; BACK</button>
+                    <button class="btn-send" onclick="send()">&#9654; SEND</button>
+                </div>
+                <div class="session-info" id="sessionInfo"></div>
+            </div>
+        </div>
+        <div class="side-panel">
+            <h3>&#9881; Simulator Info</h3>
+            <div class="info-card">
+                <h4>Flow Progress</h4>
+                <div class="flow-steps">
+                    <div class="flow-step" id="step1"><span class="step-number">1</span><span>Dial Code</span></div>
+                    <div class="flow-step" id="step2"><span class="step-number">2</span><span>Select Option</span></div>
+                    <div class="flow-step" id="step3"><span class="step-number">3</span><span>Enter Details</span></div>
+                    <div class="flow-step" id="step4"><span class="step-number">4</span><span>Confirm & Done</span></div>
+                </div>
+            </div>
+            <div class="info-card">
+                <h4>Test Credentials</h4>
+                <div class="test-data">
+                    <p><span class="key">Phone:</span> <span class="val">2348012345678</span></p>
+                    <p><span class="key">PIN:</span> <span class="val">1234</span></p>
+                    <p><span class="key">A/C 1:</span> <span class="val">1001234567</span> <span style="color:#ffcc00;">Savings</span></p>
+                    <p><span class="key">A/C 2:</span> <span class="val">1001234568</span> <span style="color:#ffcc00;">Current</span></p>
+                </div>
+            </div>
+            <div class="info-card">
+                <h4>Session Info</h4>
+                <p><span class="key">Session:</span> <span class="value" id="panelSessionId" style="font-size:11px;">---</span></p>
+                <p><span class="key">Step:</span> <span class="value" id="panelStep">Waiting...</span></p>
+                <p><span class="key">Amount:</span> <span class="value" id="panelAmount">---</span></p>
+                <p><span class="key">Account:</span> <span class="value" id="panelAccount">---</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null, sessionData = {}, currentStep = null, flowActive = false, inputHistory = [];
+        let countdownTimer = null;
+
+        function press(k){ 
+            if(document.getElementById('userInput').disabled) return;
+            document.getElementById('userInput').value += k; 
+            document.getElementById('userInput').focus(); 
+        }
+        function goBack(){ 
+            if(document.getElementById('userInput').disabled) return;
+            if(inputHistory.length>0){ 
+                document.getElementById('userInput').value=inputHistory.pop(); 
+                document.getElementById('userInput').focus(); 
+            } 
+        }
+
+        function disableInputs(){
+            document.getElementById('userInput').disabled = true;
+            document.getElementById('cursor').style.display = 'none';
+            document.querySelectorAll('#keypad button').forEach(b => b.disabled = true);
+            document.querySelectorAll('#actions button').forEach(b => b.disabled = true);
+        }
+
+        function enableInputs(){
+            document.getElementById('userInput').disabled = false;
+            document.getElementById('cursor').style.display = '';
+            document.querySelectorAll('#keypad button').forEach(b => b.disabled = false);
+            document.querySelectorAll('#actions button').forEach(b => b.disabled = false);
+        }
+        
+        function endSession(){
+            if(countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+            sessionId=null;sessionData={};currentStep=null;flowActive=false;inputHistory=[];
+            document.getElementById('userInput').value='';
+            showHomeScreen();
+            updatePanel('---','Waiting...','---','---');updateSteps(0);
+            document.getElementById('sessionInfo').textContent='';
+            enableInputs();
+        }
+
+        function showHomeScreen(){
+            document.getElementById('display').innerHTML = 
+                '<span class="prompt">Welcome to MockBank USSD</span>\n' +
+                '<span class="divider">────────────────────────</span>\n' +
+                '<span class="info">Dial *723# for Main Menu</span>\n' +
+                '<span class="info">Dial *723*amount# for Airtime</span>\n' +
+                '<span class="divider">────────────────────────</span>';
+        }
+
+        function addLine(t,c){ 
+            const d=document.getElementById('display'); 
+            const e=document.createElement('span'); 
+            e.className=c||'response'; 
+            e.textContent=t; 
+            d.appendChild(e); 
+            d.appendChild(document.createTextNode('\n')); 
+            d.scrollTop=d.scrollHeight; 
+        }
+
+        function clearDisplay(){ document.getElementById('display').innerHTML=''; }
+        
+        function updatePanel(sid,step,amt,acct){
+            document.getElementById('panelSessionId').textContent=sid||'---';
+            document.getElementById('panelStep').textContent=step||'---';
+            document.getElementById('panelAmount').textContent=amt||'---';
+            document.getElementById('panelAccount').textContent=acct||'---';
+        }
+        function updateSteps(s){
+            for(let i=1;i<=4;i++){ 
+                const el=document.getElementById('step'+i); 
+                el.classList.remove('active','completed'); 
+                if(i<s)el.classList.add('completed'); 
+                if(i===s)el.classList.add('active'); 
+            }
+        }
+        function mask(v){ if(!v||v.length<6)return'****'; return v.substring(0,3)+'****'+v.slice(-3); }
+
+        function startCountdown(seconds){
+            const display = document.getElementById('display');
+            let remaining = seconds;
+            
+            disableInputs();
+            
+            function tick(){
+                if(remaining <= 0){
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                    showHomeScreen();
+                    enableInputs();
+                    document.getElementById('userInput').focus();
+                    return;
+                }
+                
+                // Update only the countdown line
+                const lines = display.querySelectorAll('span');
+                const lastLine = lines[lines.length - 1];
+                if(lastLine && lastLine.classList.contains('countdown')){
+                    lastLine.textContent = 'Returning home in ' + remaining + '...';
+                }
+                remaining--;
+            }
+            
+            addLine('────────────────────────','divider');
+            addLine('Returning home in ' + remaining + '...', 'countdown');
+            
+            countdownTimer = setInterval(tick, 1000);
+        }
+
+        async function send(){
+            if(document.getElementById('userInput').disabled) return;
+            
+            const input = document.getElementById('userInput').value.trim();
+            if(!input) return;
+            inputHistory.push(input);
+            document.getElementById('userInput').value='';
+            document.getElementById('userInput').focus();
+
+            if(!flowActive){
+                if(input==='*723#'){
+                    sessionId='SIM-'+Date.now().toString(36).toUpperCase(); flowActive=true;
+                    clearDisplay(); addLine('Dialing *723#','info'); addLine('Connecting...','prompt');
+                    updatePanel(sessionId,'Loading menu...','---','---');updateSteps(1);
+                    try{
+                        const res=await call('/api/ussd/menu',{msisdn:'2348012345678',sessionId:sessionId,input:'',sessionData:{},sessionStart:true});
+                        handleResponse(res);
+                    }catch(e){addLine('Connection failed! Server running?','error');}
+                    return;
+                }
+                if(input.startsWith('*723*')){
+                    const m=input.match(/\*723\*(\d+)#/);
+                    if(!m){addLine('Invalid format. Use *723*1000#','error');return;}
+                    sessionId='SIM-'+Date.now().toString(36).toUpperCase(); flowActive=true;
+                    const amount=m[1];
+                    clearDisplay(); addLine('Dialing *723*'+amount+'#','info');addLine('Connecting...','prompt');
+                    updatePanel(sessionId,'Fetching accounts...',amount,'---');updateSteps(1);
+                    try{
+                        const res=await call('/api/ussd/airtime',{msisdn:'2348012345678',sessionId:sessionId,input:amount,sessionData:{},sessionStart:true});
+                        handleResponse(res);
+                    }catch(e){addLine('Connection failed!','error');}
+                    return;
+                }
+                addLine('Unknown code. Try *723# or *723*1000#','error'); return;
+            }
+
+            // In flow — clear display and show sending
+            clearDisplay();
+            addLine('Sending: '+input,'info');
+            
+            const url = currentStep || '/api/ussd/menu-choice';
+            try{
+                const res=await call(url,{msisdn:'2348012345678',sessionId:sessionId,input:input,sessionData:sessionData,sessionStart:false});
+                handleResponse(res);
+            }catch(e){addLine('Connection failed!','error');}
+        }
+
+        async function call(url,body){
+            const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+            if(!resp.ok){
+                try{const err=await resp.json();if(err.text)addLine(err.text,'error');}catch(e){}
+                if(body.sessionEnd){endSession();}
+                throw new Error('API '+resp.status);
+            }
+            return resp.json();
+        }
+
+        function handleResponse(res){
+            // Clear display and show response fresh
+            clearDisplay();
+            
+            if(res.text){res.text.split('\n').forEach(l=>{if(l.trim())addLine(l.trim(),'response');});}
+            
+            if(res.callbackUrl){
+                currentStep=res.callbackUrl;
+                document.getElementById('sessionInfo').textContent='Session: '+sessionId;
+                if(currentStep.includes('select-account')){updatePanel(sessionId,'Select Account',sessionData.amount||'---','---');updateSteps(2);}
+                else if(currentStep.includes('purchase')||currentStep.includes('confirm')){updatePanel(sessionId,'Enter PIN',sessionData.amount||'---',mask(sessionData.accountNumber||''));updateSteps(3);}
+                else if(currentStep.includes('transfer/amount')){updatePanel(sessionId,'Enter Amount','---','---');updateSteps(2);}
+                else if(currentStep.includes('transfer/bank')){updatePanel(sessionId,'Select Bank',sessionData.amount||'---',sessionData.destAccount||'---');updateSteps(3);}
+                else if(currentStep.includes('name-enquiry')){updatePanel(sessionId,'Name Enquiry',sessionData.amount||'---',sessionData.destAccount||'---');updateSteps(3);}
+                else if(currentStep.includes('menu-choice')){updatePanel(sessionId,'Main Menu','---','---');updateSteps(1);}
+                else{updatePanel(sessionId,currentStep,sessionData.amount||'---','---');}
+            }
+            if(res.sessionData){sessionData=res.sessionData;
+                if(sessionData.accountNumber)updatePanel(sessionId,'Processing...',sessionData.amount||'---',mask(sessionData.accountNumber));
+                if(sessionData.destName)updatePanel(sessionId,'Confirm Transfer',sessionData.amount||'---',sessionData.destName);
+            }
+            if(res.sessionEnd){
+                addLine('────────────────────────','divider');addLine('Complete!','header');
+                updatePanel(sessionId,'Done',sessionData.amount||'---',mask(sessionData.accountNumber||sessionData.destAccount||''));
+                updateSteps(4);
+                flowActive=false;currentStep=null;
+                // Start 5-second countdown
+                startCountdown(5);
+            }
+        }
+
+        document.addEventListener('keydown',function(e){
+            if(e.key==='Enter'){e.preventDefault();send();}
+            else if(e.key==='Escape'){e.preventDefault();endSession();}
+            else if(/^[0-9*#]$/.test(e.key)&&document.activeElement!==document.getElementById('userInput')){
+                e.preventDefault();press(e.key);document.getElementById('userInput').focus();
+            }
+        });
+        document.getElementById('userInput').focus();
+        document.querySelector('.phone').addEventListener('click',function(){document.getElementById('userInput').focus();});
+    </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{"properties": [
+  {
+    "name": "ussd.security.hmac-secret-key",
+    "type": "java.lang.String",
+    "description": "A description for 'ussd.security.hmac-secret-key'"
+  },
+  {
+    "name": "bank.api.base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'bank.api.base-url'"
+  },
+  {
+    "name": "bank.api.read-timeout",
+    "type": "java.lang.String",
+    "description": "A description for 'bank.api.read-timeout'"
+  },
+  {
+    "name": "bank.api.connection-timeout",
+    "type": "java.lang.String",
+    "description": "A description for 'bank.api.connection-timeout'"
+  },
+  {
+    "name": "ussd.security.timestamp-threshold-seconds",
+    "type": "java.lang.String",
+    "description": "A description for 'ussd.security.timestamp-threshold-seconds'"
+  },
+  {
+    "name": "ussd.security.aes-secret-key",
+    "type": "java.lang.String",
+    "description": "A description for 'ussd.security.aes-secret-key'"
+  },
+  {
+    "name": "bank.cache.ttl-seconds",
+    "type": "java.lang.String",
+    "description": "A description for 'bank.cache.ttl-seconds'"
+  }
+]}
