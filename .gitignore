@@ -40,7 +40,7 @@ build/
 
 # Application properties with secrets (IMPORTANT)
 application-render.properties
-application-prod.properties
+application-h2.properties
 
 ### OS ###
 .DS_Store
