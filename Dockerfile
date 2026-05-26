@@ -12,4 +12,4 @@ COPY --from=builder /app/target/ussd-gateway-1.0.0-SNAPSHOT.jar app.jar
 RUN chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILES_ACTIVE:render}"]
