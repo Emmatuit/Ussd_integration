@@ -13,4 +13,5 @@ COPY --from=builder /app/target/*.jar app.jar
 RUN chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar", "--spring.config.location=classpath:/application-render.properties"]
+
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.config.location=classpath:/,/etc/secrets/application-render.properties"]
