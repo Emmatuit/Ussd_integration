@@ -38,9 +38,9 @@ build/
 !.env.example
 
 
-# Application properties with secrets (IMPORTANT)
-application-render.properties
-application-h2.properties
+# Application properties with secrets
+*.properties
+!application.properties
 
 ### OS ###
 .DS_Store

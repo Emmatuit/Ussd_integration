@@ -145,6 +145,14 @@
     </div>
 
     <script>
+        // ============================================================
+        // 🔴 IMPORTANT: CHANGE THIS URL TO YOUR RENDER BACKEND URL 🔴
+        // ============================================================
+        // For local testing: "http://localhost:8080"
+        // After deploying to Render: "https://your-app-name.onrender.com"
+        const API_BASE_URL = "http://localhost:8080";  // <-- CHANGE THIS!
+        // ============================================================
+
         let sessionId = null, sessionData = {}, currentStep = null, flowActive = false, inputHistory = [];
         let countdownTimer = null;
 
@@ -153,6 +161,7 @@
             document.getElementById('userInput').value += k; 
             document.getElementById('userInput').focus(); 
         }
+        
         function goBack(){ 
             if(document.getElementById('userInput').disabled) return;
             if(inputHistory.length>0){ 
@@ -212,6 +221,7 @@
             document.getElementById('panelAmount').textContent=amt||'---';
             document.getElementById('panelAccount').textContent=acct||'---';
         }
+        
         function updateSteps(s){
             for(let i=1;i<=4;i++){ 
                 const el=document.getElementById('step'+i); 
@@ -220,6 +230,7 @@
                 if(i===s)el.classList.add('active'); 
             }
         }
+        
         function mask(v){ if(!v||v.length<6)return'****'; return v.substring(0,3)+'****'+v.slice(-3); }
 
         function startCountdown(seconds){
@@ -238,7 +249,6 @@
                     return;
                 }
                 
-                // Update only the countdown line
                 const lines = display.querySelectorAll('span');
                 const lastLine = lines[lines.length - 1];
                 if(lastLine && lastLine.classList.contains('countdown')){
@@ -289,7 +299,6 @@
                 addLine('Unknown code. Try *723# or *723*1000#','error'); return;
             }
 
-            // In flow — clear display and show sending
             clearDisplay();
             addLine('Sending: '+input,'info');
             
@@ -301,17 +310,22 @@
         }
 
         async function call(url,body){
-            const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-            if(!resp.ok){
-                try{const err=await resp.json();if(err.text)addLine(err.text,'error');}catch(e){}
-                if(body.sessionEnd){endSession();}
-                throw new Error('API '+resp.status);
+            try {
+                const fullUrl = API_BASE_URL + url;
+                const resp=await fetch(fullUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+                if(!resp.ok){
+                    try{const err=await resp.json();if(err.text)addLine(err.text,'error');}catch(e){}
+                    if(body.sessionEnd){endSession();}
+                    throw new Error('API '+resp.status);
+                }
+                return resp.json();
+            } catch(e) {
+                addLine('Connection error: ' + e.message, 'error');
+                throw e;
             }
-            return resp.json();
         }
 
         function handleResponse(res){
-            // Clear display and show response fresh
             clearDisplay();
             
             if(res.text){res.text.split('\n').forEach(l=>{if(l.trim())addLine(l.trim(),'response');});}
@@ -336,7 +350,6 @@
                 updatePanel(sessionId,'Done',sessionData.amount||'---',mask(sessionData.accountNumber||sessionData.destAccount||''));
                 updateSteps(4);
                 flowActive=false;currentStep=null;
-                // Start 5-second countdown
                 startCountdown(5);
             }
         }
@@ -348,6 +361,7 @@
                 e.preventDefault();press(e.key);document.getElementById('userInput').focus();
             }
         });
+        
         document.getElementById('userInput').focus();
         document.querySelector('.phone').addEventListener('click',function(){document.getElementById('userInput').focus();});
     </script>
