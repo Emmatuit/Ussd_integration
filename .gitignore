@@ -37,6 +37,12 @@ build/
 *.env
 !.env.example
 
+
+# Application properties with secrets (IMPORTANT)
+application-render.properties
+application-prod.properties
+application.properties
+
 ### OS ###
 .DS_Store
 Thumbs.db
