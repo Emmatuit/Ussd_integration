@@ -9,8 +9,7 @@ RUN ./mvnw clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 WORKDIR /app
-COPY --from=builder /app/target/ussd-gateway-1.0.0-SNAPSHOT.jar app.jar
-RUN chmod +x app.jar
+COPY --from=builder /app/target/*.jar app.jar
 RUN chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8080
