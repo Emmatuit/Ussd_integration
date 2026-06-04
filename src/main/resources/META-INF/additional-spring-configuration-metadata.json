@@ -33,5 +33,11 @@
     "name": "bank.cache.ttl-seconds",
     "type": "java.lang.String",
     "description": "A description for 'bank.cache.ttl-seconds'"
+  },
+  {
+    "name": "ussd.security.test-mode",
+    "type": "java.lang.String",
+    "description": "A description for 'ussd.security.test-mode'"
   }
+
 ]}
