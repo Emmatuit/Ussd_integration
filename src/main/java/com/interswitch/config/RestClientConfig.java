@@ -11,14 +11,23 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RestClientConfig {
 
-	private final BankApiProperties bankApiProperties;
+    private final BankApiProperties bankApiProperties;
 
-	@Bean
-	public RestClient bankRestClient() {
-		SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-		factory.setConnectTimeout(bankApiProperties.getConnectionTimeout());
-		factory.setReadTimeout(bankApiProperties.getReadTimeout());
+    @Bean
+    public RestClient bankRestClient() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(bankApiProperties.getConnectionTimeout());
+        factory.setReadTimeout(bankApiProperties.getReadTimeout());
 
-		return RestClient.builder().baseUrl(bankApiProperties.getBaseUrl()).requestFactory(factory).build();
-	}
+        return RestClient.builder()
+                .baseUrl(bankApiProperties.getBaseUrl())
+                .requestFactory(factory)
+                .build();
+    }
+
+    // Add this bean to provide RestClient.Builder for InterswitchPaymentClient
+    @Bean
+    public RestClient.Builder restClientBuilder() {
+        return RestClient.builder();
+    }
 }
